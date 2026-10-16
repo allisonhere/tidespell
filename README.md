@@ -45,6 +45,9 @@ for _, s := range spans {
 }
 opts.StyleKey = func(off int) string { if off < len(bad) && bad[off] { return "typo" }; return "" }
 opts.Style = func(key, text string) string {
+	if key != "typo" { // ripple calls Style for every run, flagged or not
+		return text
+	}
 	return lipgloss.NewStyle().Underline(true).Foreground(lipgloss.Color("203")).Render(text)
 }
 ```
