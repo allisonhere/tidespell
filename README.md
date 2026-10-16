@@ -2,7 +2,7 @@
 
 An offline English spell checker for Go, built for terminal editors. No cgo, no
 dictionary files to install: the word list is embedded in the binary (about
-410 KB gzipped), so it works in a single static build.
+535 KB gzipped), so it works in a single static build.
 
 It is UI-free on purpose. `Check` returns misspelled spans as **rune offsets**,
 which is what editors such as
@@ -65,8 +65,11 @@ when the base word is known.
 
 - English only (US and GB spellings). No grammar checking and no per-message
   language detection.
-- No word frequencies: suggestions are ranked by edit distance, transposition,
-  membership in a built-in common-words list, and capitalization fit.
+- Suggestions are ranked by true edit distance, adjusted for common typing
+  slips (swapped letters, a dropped or doubled letter, a neighbouring key),
+  a rough phonetic match, and how everyday the word is (SCOWL frequency
+  tiers). On the 115-typo benchmark in `testdata/typos.txt` the intended word
+  is first 93% of the time and in the top three 99% (v0.1.0: 83% / 96%).
 - Names and jargon will be flagged until added with `Add`.
 
 ## License

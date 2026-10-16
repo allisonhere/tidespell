@@ -22,11 +22,13 @@ import (
 //go:embed words.txt.gz
 var wordsGz []byte
 
-// commonGz is the everyday-vocabulary subset; Suggest prefers it so "the"
+// tiersGz maps lowercase words to a frequency tier ("1 the"): 1 is everyday
+// vocabulary (SCOWL size 35), 2 and 3 progressively rarer (sizes 40 and 50).
+// Words absent from it are tier 5. Suggest prefers lower tiers so "the"
 // outranks rare entries like "Te" when the word list carries no frequencies.
 //
-//go:embed common.txt.gz
-var commonGz []byte
+//go:embed tiers.txt.gz
+var tiersGz []byte
 
 // Span is one misspelled word. Start and End are rune offsets into the text
 // passed to Check (End is exclusive).
@@ -36,9 +38,9 @@ type Span struct {
 }
 
 type dict struct {
-	exact  map[string]struct{} // entries as written ("Allie", "NASA", "color")
-	lower  map[string]string   // lowercase form -> preferred written form
-	common map[string]struct{} // lowercase everyday words
+	exact map[string]struct{} // entries as written ("Allie", "NASA", "color")
+	lower map[string]string   // lowercase form -> preferred written form
+	tier  map[string]uint8    // lowercase word -> frequency tier (1 = everyday)
 }
 
 var (
@@ -49,9 +51,9 @@ var (
 func loadDict() *dict {
 	defaultDictOnce.Do(func() {
 		d := &dict{
-			exact:  make(map[string]struct{}, 120000),
-			lower:  make(map[string]string, 120000),
-			common: make(map[string]struct{}, 50000),
+			exact: make(map[string]struct{}, 120000),
+			lower: make(map[string]string, 120000),
+			tier:  make(map[string]uint8, 90000),
 		}
 		readLines(wordsGz, func(w string) {
 			d.exact[w] = struct{}{}
@@ -62,7 +64,11 @@ func loadDict() *dict {
 				d.lower[l] = w
 			}
 		})
-		readLines(commonGz, func(w string) { d.common[strings.ToLower(w)] = struct{}{} })
+		readLines(tiersGz, func(line string) {
+			if len(line) > 2 && line[1] == ' ' && line[0] >= '1' && line[0] <= '9' {
+				d.tier[line[2:]] = line[0] - '0'
+			}
+		})
 		defaultDict = d
 	})
 	return defaultDict
@@ -217,94 +223,6 @@ func shouldSkip(tok string) bool {
 		return true
 	}
 	return upper == letters // ACRONYM
-}
-
-// Suggest returns up to n corrections for word, best first: candidates within
-// one edit, then two, with transpositions and a matching first letter ranked
-// ahead. The result keeps the capitalization of word.
-func (c *Checker) Suggest(word string, n int) []string {
-	word = normalize(word)
-	l := strings.ToLower(word)
-	if n <= 0 || l == "" {
-		return nil
-	}
-	type cand struct {
-		w          string
-		dist       int
-		transposed bool
-		uncommon   bool
-		oddCase    bool // capitalized/abbreviation entry offered for a lowercase word
-		otherFirst bool
-	}
-	lowerInput := word == l
-	seen := map[string]bool{l: true}
-	var cands []cand
-	add := func(w string, dist int, transposed bool) {
-		if seen[w] {
-			return
-		}
-		seen[w] = true
-		written, ok := c.d.lower[w]
-		if !ok {
-			c.mu.RLock()
-			_, ok = c.personal[w]
-			c.mu.RUnlock()
-			if !ok {
-				return
-			}
-			written = w
-		}
-		_, common := c.d.common[w]
-		cands = append(cands, cand{
-			w: written, dist: dist, transposed: transposed, uncommon: !common,
-			oddCase:    lowerInput && written != w,
-			otherFirst: !strings.HasPrefix(w, l[:1]),
-		})
-	}
-
-	rs := []rune(l)
-	e1 := edits(l)
-	for i := 0; i+1 < len(rs); i++ {
-		add(string(rs[:i])+string(rs[i+1])+string(rs[i])+string(rs[i+2:]), 1, true)
-	}
-	for _, w := range e1 {
-		add(w, 1, false)
-	}
-	if len(cands) < n {
-		for _, w1 := range e1 {
-			for _, w2 := range edits(w1) {
-				add(w2, 2, false)
-			}
-		}
-	}
-	less := func(a, b cand) int {
-		for _, k := range []struct{ x, y bool }{
-			{a.transposed, b.transposed}, {!a.uncommon, !b.uncommon},
-			{!a.oddCase, !b.oddCase}, {!a.otherFirst, !b.otherFirst},
-		} {
-			if k.x != k.y {
-				if k.x {
-					return -1
-				}
-				return 1
-			}
-		}
-		return strings.Compare(a.w, b.w)
-	}
-	sort.SliceStable(cands, func(i, j int) bool {
-		if cands[i].dist != cands[j].dist {
-			return cands[i].dist < cands[j].dist
-		}
-		return less(cands[i], cands[j]) < 0
-	})
-	out := make([]string, 0, n)
-	for _, cd := range cands {
-		if len(out) == n {
-			break
-		}
-		out = append(out, matchCase(word, cd.w))
-	}
-	return out
 }
 
 // matchCase gives suggestion the capitalization pattern of word.

@@ -1,7 +1,8 @@
 tidespell embeds word lists generated from the English Speller Database (ESDB/SCOWL).
 Its license and provenance follow, and must accompany any copy of the word lists.
 words.txt.gz: size 60, US + GB(-ise), variant level 1, accents kept and stripped, hacker.
-common.txt.gz: size 35, US + GB(-ise), variant level 0, accents kept and stripped.
+tiers.txt.gz: frequency tiers from sizes 35, 40 and 50 (tier = the smallest size containing the word),
+US + GB(-ise), variant level 0, accents kept and stripped.
 
 Custom wordlist generated from https://app.aspell.net/create using
 the English Speller Database (ESDB) with parameters:
