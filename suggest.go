@@ -21,20 +21,24 @@ func (c *Checker) Suggest(word string, n int) []string {
 	typo := []rune(l)
 
 	cands := map[string]bool{}
-	e1 := edits(l)
+	e1 := edits(l, c.lang.Alphabet)
 	for _, w := range e1 {
 		cands[w] = true
 	}
 	if len(typo) <= 18 { // two edits is quadratic in length; skip for very long words
 		for _, w1 := range e1 {
-			for _, w2 := range edits(w1) {
+			for _, w2 := range edits(w1, c.lang.Alphabet) {
 				cands[w2] = true
 			}
 		}
 	}
-	key := metaphone(l)
+	phonetic := c.lang.Phonetic
+	key := ""
+	if phonetic != nil {
+		key = phonetic(l)
+	}
 	if key != "" {
-		for _, w := range phoneticBucket(c.d, key) {
+		for _, w := range c.d.phoneticBucket(key) {
 			cands[w] = true
 		}
 	}
@@ -68,13 +72,13 @@ func (c *Checker) Suggest(word string, n int) []string {
 			s -= 0.5
 		case d == 1 && len(rs) == len(typo)+1:
 			s -= 0.15 // a dropped letter is the commonest single-letter slip
-		case d == 1 && isNeighbourSlip(typo, rs):
+		case d == 1 && c.d.isNeighbourSlip(typo, rs):
 			s -= 0.1
 		}
 		if isDoubledLetterFix(typo, rs) {
 			s -= 0.25
 		}
-		if key != "" && metaphone(w) == key {
+		if key != "" && phonetic(w) == key {
 			// Sounding alike matters most when the spelling is far off.
 			if d >= 2 {
 				s -= 0.4
@@ -151,14 +155,14 @@ func isTransposition(a, b []rune) bool {
 }
 
 // isNeighbourSlip reports whether b differs from a by one letter and the two
-// letters sit next to each other on a QWERTY keyboard.
-func isNeighbourSlip(a, b []rune) bool {
+// letters sit next to each other on the language's keyboard.
+func (d *dict) isNeighbourSlip(a, b []rune) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i := range a {
 		if a[i] != b[i] {
-			return string(a[i+1:]) == string(b[i+1:]) && keyNeighbours[a[i]][b[i]]
+			return string(a[i+1:]) == string(b[i+1:]) && d.neighbours[a[i]][b[i]]
 		}
 	}
 	return false
@@ -184,8 +188,8 @@ func isDoubledLetterFix(a, b []rune) bool {
 	return false
 }
 
-var keyNeighbours = func() map[rune]map[rune]bool {
-	rows := []string{"qwertyuiop", "asdfghjkl", "zxcvbnm"}
+// keyNeighbours maps each key to the keys beside or diagonally below it.
+func keyNeighbours(rows []string) map[rune]map[rune]bool {
 	m := map[rune]map[rune]bool{}
 	link := func(x, y rune) {
 		if m[x] == nil {
@@ -210,4 +214,4 @@ var keyNeighbours = func() map[rune]map[rune]bool {
 		}
 	}
 	return m
-}()
+}

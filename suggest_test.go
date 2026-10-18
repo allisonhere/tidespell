@@ -55,7 +55,8 @@ func TestTypingPatterns(t *testing.T) {
 	if isDoubledLetterFix([]rune("cat"), []rune("cart")) {
 		t.Error("an inserted non-duplicate letter is not a doubled-letter fix")
 	}
-	if !isNeighbourSlip([]rune("wirk"), []rune("work")) || isNeighbourSlip([]rune("wxrk"), []rune("work")) {
+	d := New().d
+	if !d.isNeighbourSlip([]rune("wirk"), []rune("work")) || d.isNeighbourSlip([]rune("wxrk"), []rune("work")) {
 		t.Error("isNeighbourSlip uses QWERTY adjacency (i is next to o; x is not)")
 	}
 }

@@ -1,6 +1,8 @@
 package tidespell
 
 import (
+	"bytes"
+	"compress/gzip"
 	"slices"
 	"testing"
 	"time"
@@ -103,5 +105,32 @@ func TestSuggestIsFastEnoughToRunOnKeypress(t *testing.T) {
 	c.Suggest("incomprehensiblly", 5)
 	if d := time.Since(start); d > 750*time.Millisecond {
 		t.Fatalf("Suggest took %v", d)
+	}
+}
+
+func TestWithLanguage(t *testing.T) {
+	gz := func(s string) []byte {
+		var b bytes.Buffer
+		w := gzip.NewWriter(&b)
+		w.Write([]byte(s))
+		w.Close()
+		return b.Bytes()
+	}
+	toy := &Language{
+		Code:     "xx",
+		Alphabet: "abc",
+		Keyboard: []string{"abc"},
+		Words:    gz("abba\ncab\n"),
+		Tiers:    gz("1 cab\n"),
+	}
+	c := New(WithLanguage(toy))
+	if !c.Known("cab") || c.Known("the") {
+		t.Error("WithLanguage should replace the English dictionary")
+	}
+	if got := c.Suggest("cba", 1); len(got) != 1 || got[0] != "cab" {
+		t.Errorf("Suggest(cba) = %v; want [cab] (nil Phonetic must not panic)", got)
+	}
+	if !New().Known("the") {
+		t.Error("New() should still default to English")
 	}
 }

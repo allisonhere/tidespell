@@ -1,9 +1,6 @@
 package tidespell
 
-import (
-	"strings"
-	"sync"
-)
+import "strings"
 
 // metaphone returns a rough phonetic key for an English word (a simplified
 // Metaphone): words that sound alike tend to share a key, so "definately"
@@ -145,21 +142,17 @@ func metaphone(word string) string {
 	return string(out)
 }
 
-// phoneticIndex groups dictionary words by metaphone key. It is built on first
-// use (a few tens of milliseconds) and shared by every Checker.
-var (
-	phoneticOnce  sync.Once
-	phoneticIndex map[string][]string
-)
-
-func phoneticBucket(d *dict, key string) []string {
-	phoneticOnce.Do(func() {
-		phoneticIndex = make(map[string][]string, 60000)
+// phoneticBucket returns the dictionary words sharing a phonetic key. The index
+// is built on first use (a few tens of milliseconds) and shared by every
+// Checker on this dictionary.
+func (d *dict) phoneticBucket(key string) []string {
+	d.phonOnce.Do(func() {
+		d.phon = make(map[string][]string, 60000)
 		for l := range d.lower {
-			if k := metaphone(l); k != "" {
-				phoneticIndex[k] = append(phoneticIndex[k], l)
+			if k := d.lang.Phonetic(l); k != "" {
+				d.phon[k] = append(d.phon[k], l)
 			}
 		}
 	})
-	return phoneticIndex[key]
+	return d.phon[key]
 }
