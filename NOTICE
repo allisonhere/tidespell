@@ -40,3 +40,17 @@ are in the Public Domain, but Alan Beale <biljir@pobox.com> deserves special
 credit as he is the author of 12dicts and a major contributor to ENABLE2K.  In
 addition, he gave me an incredible amount of feedback and created a number of
 special lists in order to help improve the overall quality of ESDB.
+
+---
+
+lang/es (Spanish)
+
+words.txt.gz: the RLA-ES es_ES Hunspell dictionary v2.8 (npm dictionary-es 4.0.0),
+https://github.com/sbosio/rla-es, expanded with unmunch and filtered to forms
+Hunspell accepts (see lang/es/generate.sh). Distributed under the MPL 1.1 option
+of its GPL-3.0-or-later / LGPL-3.0-or-later / MPL-1.1-or-later triple licence;
+the original licence text is lang/es/LICENSE.es_ES.
+
+tiers.txt.gz: frequency ranks from the OpenSubtitles 2018 Spanish list in
+hermitdave/FrequencyWords (https://github.com/hermitdave/FrequencyWords),
+content licensed CC BY-SA 4.0. Only the derived word tiers are included.

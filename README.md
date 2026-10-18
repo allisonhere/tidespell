@@ -1,6 +1,6 @@
 # tidespell
 
-An offline English spell checker for Go, built for terminal editors. No cgo, no
+An offline spell checker for Go (English built in, Spanish in `lang/es`), built for terminal editors. No cgo, no
 dictionary files to install: the word list is embedded in the binary (about
 535 KB gzipped), so it works in a single static build.
 
@@ -54,6 +54,18 @@ opts.Style = func(key, text string) string {
 
 Recompute `spans` after edits (debounced), not on every render.
 
+## Other languages
+
+```go
+import "github.com/allisonhere/tidespell/lang/es"
+
+c := tidespell.New(tidespell.WithLanguage(es.Language))
+```
+
+`tidespell.Language` bundles a gzipped word list, frequency tiers, an alphabet,
+a keyboard layout and an optional phonetic function, so other languages can be
+added the same way. `New()` with no options is still English.
+
 ## What it ignores
 
 URLs, email addresses, tokens containing digits, ALL-CAPS acronyms, single
@@ -63,8 +75,9 @@ when the base word is known.
 
 ## Limits
 
-- English only (US and GB spellings). No grammar checking and no per-message
-  language detection.
+- English (US and GB spellings) is built in; Spanish is the `lang/es`
+  package, kept separate so English-only programs don't embed its 1.8 MB of
+  word lists. No grammar checking and no per-message language detection.
 - Suggestions are ranked by true edit distance, adjusted for common typing
   slips (swapped letters, a dropped or doubled letter, a neighbouring key),
   a rough phonetic match, and how everyday the word is (SCOWL frequency
@@ -77,3 +90,9 @@ when the base word is known.
 Code is MIT (see `LICENSE`). The embedded word lists come from the English
 Speller Database (SCOWL) and are covered by the notice in `NOTICE`, which must
 accompany any copy of them.
+
+The Spanish word list in `lang/es` is the RLA-ES `es_ES` dictionary, used here
+under the MPL 1.1 option of its GPL/LGPL/MPL triple licence (`lang/es/LICENSE.es_ES`);
+its frequency tiers derive from the OpenSubtitles 2018 list in
+[FrequencyWords](https://github.com/hermitdave/FrequencyWords)
+(CC BY-SA 4.0). See `NOTICE`.
